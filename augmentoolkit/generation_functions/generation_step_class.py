@@ -96,6 +96,8 @@ class GenerationStep:
 
         # Submit generation and return response, retrying as needed
         times_tried = 0
+        response = None
+        timeout = False
         if self.completion_mode:
             prompt_formatted = safe_format(prompt, **kwargs)
             while times_tried <= self.retries:
@@ -119,15 +121,14 @@ class GenerationStep:
                         )
                     return ret, timeout
                 except Exception as e:
-                    # logging.error(f"Error in Generation Step: {e}")
-                    try:
-                        if not self.engine_wrapper.mode == "llamacpp":
-                            print("Response:")
-                            print(response)
-                    except Exception as e:
-                        print(f"Error {e}")
-                        traceback.print_exc()
-                        pass
+                    logging.error(f"Error in Generation Step (completion mode): {e}")
+                    if response is not None:
+                        try:
+                            if not self.engine_wrapper.mode == "llamacpp":
+                                print("Response:")
+                                print(response)
+                        except Exception as print_e:
+                            logging.warning(f"Could not print response: {print_e}")
                     traceback.print_exc()
                     times_tried += 1
             raise Exception("Generation step failed -- too many retries!")
@@ -167,9 +168,6 @@ class GenerationStep:
                         }
                         for message in messages
                     ]
-                    # print("\n\n\nBEGIN DEBUG")
-                    # print(messages)
-                    # print("END DEBUG\n\n\n")
                     response, timeout = await self.engine_wrapper.submit_chat(
                         messages, self.sampling_params
                     )
@@ -199,25 +197,18 @@ class GenerationStep:
                         )
                     return ret, timeout
                 except Exception as e:
-                    logging.error(f"Error in Generation Step: {e}")
-                    if self.completion_mode:
-                        print("Prompt:")
-                        print(prompt)
-                    else:
-                        print("Messages:")
-                        print(
-                            yaml.dump(
-                                messages, default_flow_style=False, allow_unicode=True
-                            )
+                    logging.error(f"Error in Generation Step (chat mode): {e}")
+                    print("Messages:")
+                    print(
+                        yaml.dump(
+                            messages, default_flow_style=False, allow_unicode=True
                         )
-                    try:
+                    )
+                    if response is not None:
                         print("\n\nResponse:\n-----")
                         print(response)
-                    except UnboundLocalError:
-                        print("No response to print")
-                        pass
-                    # if prompt_formatted:
-                    #     print(prompt_formatted)
+                    else:
+                        print("No response received from API")
                     logging.error(
                         f"Above prompt resulted in error, probably the model's fault: {e}"
                     )

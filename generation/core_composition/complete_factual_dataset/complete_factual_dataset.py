@@ -1507,10 +1507,9 @@ async def factual_datagen_full(  # there will be quite a few args here
                 python_executable = "python"
                 print("Virtual environment not found, using system python")
 
-            command_str = f'"{python_executable}" "{convert_script}" "{finished_model_path}" --outtype "q8_0" --outfile "{outfile}"'
+            command_list = [python_executable, convert_script, finished_model_path, "--outtype", "q8_0", "--outfile", outfile]
             result = subprocess.run(
-                command_str,
-                shell=True,
+                command_list,
                 capture_output=True,
                 text=True,
                 check=False,  # Don't raise exception immediately
@@ -1877,10 +1876,10 @@ async def _run_automated_training(
             f"/root/miniconda3/envs/py3.11/bin/wandb login {wandb_api_key}",
         ]
         for cmd in setup_commands:
-            ssh_cmd = f"ssh {ssh_options} -p {port} root@{ip} '{cmd}'"
-            print(f"Executing on pod: {ssh_cmd}")
+            ssh_cmd_list = ["ssh"] + ssh_options.split() + ["-p", str(port), f"root@{ip}", cmd]
+            print(f"Executing credential setup command on pod (credentials redacted)")
             subprocess.run(
-                ssh_cmd, shell=True, check=True, text=True, capture_output=False
+                ssh_cmd_list, check=True, text=True, capture_output=False
             )
         print("Credentials set up on pod.")
 
@@ -1891,11 +1890,10 @@ async def _run_automated_training(
                 progress=0.51,
                 message=f"Copying pretraining data to pod {created_pod_id}...",
             )
-            scp_pretrain_cmd = f'scp {ssh_options} -P {port} -r "{pretraining_run_path}" root@{ip}:/workspace/axolotl/pretraining_run'
-            print(f"Executing: {scp_pretrain_cmd}")
+            scp_pretrain_cmd_list = ["scp"] + ssh_options.split() + ["-P", str(port), "-r", str(pretraining_run_path), f"root@{ip}:/workspace/axolotl/pretraining_run"]
+            print(f"Copying pretraining data to pod...")
             subprocess.run(
-                scp_pretrain_cmd,
-                shell=True,
+                scp_pretrain_cmd_list,
                 check=True,
                 text=True,
                 capture_output=False,
@@ -1905,13 +1903,10 @@ async def _run_automated_training(
                 task_id=task_id, progress=0.51, message="Starting pretraining job..."
             )
             pretrain_axolotl_cmd = f"cd /workspace/axolotl/pretraining_run && /root/miniconda3/envs/py3.11/bin/accelerate launch -m axolotl.cli.train {pretrain_config_name}"
-            ssh_pretrain_exec_cmd = (
-                f"ssh {ssh_options} -p {port} root@{ip} '{pretrain_axolotl_cmd}'"
-            )
-            print(f"Executing pretraining on pod: {ssh_pretrain_exec_cmd}")
+            ssh_pretrain_exec_cmd_list = ["ssh"] + ssh_options.split() + ["-p", str(port), f"root@{ip}", pretrain_axolotl_cmd]
+            print(f"Executing pretraining on pod...")
             subprocess.run(
-                ssh_pretrain_exec_cmd,
-                shell=True,
+                ssh_pretrain_exec_cmd_list,
                 check=True,
                 text=True,
                 capture_output=False,
@@ -1926,22 +1921,19 @@ async def _run_automated_training(
                 progress=0.75,
                 message=f"Copying SFT data to pod {created_pod_id}...",
             )
-            scp_sft_cmd = f'scp {ssh_options} -P {port} -r "{sft_run_path}" root@{ip}:/workspace/axolotl/sft_run'
-            print(f"Executing: {scp_sft_cmd}")
+            scp_sft_cmd_list = ["scp"] + ssh_options.split() + ["-P", str(port), "-r", str(sft_run_path), f"root@{ip}:/workspace/axolotl/sft_run"]
+            print(f"Copying SFT data to pod...")
             subprocess.run(
-                scp_sft_cmd, shell=True, check=True, text=True, capture_output=False
+                scp_sft_cmd_list, check=True, text=True, capture_output=False
             )
             print("SFT data copied.")
 
             set_progress(task_id=task_id, progress=0.75, message="Starting SFT job...")
             sft_axolotl_cmd = f"cd /workspace/axolotl/sft_run && /root/miniconda3/envs/py3.11/bin/accelerate launch -m axolotl.cli.train {sft_config_name}"
-            ssh_sft_exec_cmd = (
-                f"ssh {ssh_options} -p {port} root@{ip} '{sft_axolotl_cmd}'"
-            )
-            print(f"Executing SFT training on pod: {ssh_sft_exec_cmd}")
+            ssh_sft_exec_cmd_list = ["ssh"] + ssh_options.split() + ["-p", str(port), f"root@{ip}", sft_axolotl_cmd]
+            print(f"Executing SFT training on pod...")
             subprocess.run(
-                ssh_sft_exec_cmd,
-                shell=True,
+                ssh_sft_exec_cmd_list,
                 check=True,
                 text=True,
                 capture_output=False,

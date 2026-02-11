@@ -1,6 +1,6 @@
 import json
 import os
-import jinja2
+from jinja2.sandbox import SandboxedEnvironment
 import yaml
 from generation.core_components.sharegpt_and_oai import rename_oai_messages_to_sharegpt
 
@@ -117,9 +117,10 @@ def create_meta_dataset(
                         # set prompt to the yaml
                         prompt = yaml.safe_load(prompt)
                         # format the values into the text of each message
+                        sandbox_env = SandboxedEnvironment()
                         for message in prompt:
-                            # set message to a jinja2 template
-                            message_template = jinja2.Template(message["content"])
+                            # set message to a sandboxed jinja2 template to prevent SSTI
+                            message_template = sandbox_env.from_string(message["content"])
                             # format the values into the text of each message
                             message["content"] = message_template.render(**value)
 

@@ -1,6 +1,7 @@
 # tentative helpers file, to be imported by api.py
 import os
 import shutil
+import tempfile
 import zipfile
 from pathlib import Path as PyPath
 from typing import Optional, List
@@ -253,8 +254,10 @@ def handle_download_item(base_dir: PyPath, relative_path: str) -> FileResponse:
             f"Path in '{abs_base_dir.name}' is a directory, preparing zip archive for {target_path}"
         )
         zip_filename = f"{download_filename}.zip"
-        # Use tempfile module for more robust temp file creation if needed
-        temp_zip_path = PyPath(f"/tmp/{zip_filename}")
+        # Use tempfile for unpredictable temp file names (prevents symlink attacks)
+        temp_fd, temp_zip_str = tempfile.mkstemp(suffix=".zip", prefix="atk_")
+        os.close(temp_fd)
+        temp_zip_path = PyPath(temp_zip_str)
         # print(f"DEBUG [handle_download_item]: Temp zip path: '{temp_zip_path}'")
         try:
             zip_directory(target_path, temp_zip_path)

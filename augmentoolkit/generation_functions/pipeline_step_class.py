@@ -262,6 +262,7 @@ class PipelineStep:
         except Exception as e:
             print(e)
             traceback.print_exc()
+            raise
 
     def save(
         self,
