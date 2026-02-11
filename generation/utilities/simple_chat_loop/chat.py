@@ -72,14 +72,13 @@ def chat(  # this is useful for chatting with trained models in the command line
                 print("No NVIDIA GPU detected. Building CPU-only version...")
 
             # Run cmake configure
-            subprocess.run(build_cmd, cwd=llama_path, check=True, shell=True)
+            subprocess.run(build_cmd, cwd=llama_path, check=True)
 
             # Build the project
             subprocess.run(
                 ["cmake", "--build", "build", "--config", "Release"],
                 cwd=llama_path,
                 check=True,
-                shell=True,
             )
 
     # Build llama-server path
@@ -90,7 +89,7 @@ def chat(  # this is useful for chatting with trained models in the command line
     # Start llama-server in background
     print(f"Starting llama-server with model: {gguf_model_path}")
     server_cmd = [llama_server_path, "-m", gguf_model_path, "-c", str(context_length)]
-    server_process = subprocess.Popen(server_cmd, shell=True)
+    server_process = subprocess.Popen(server_cmd)
     print(f"Started llama-server with PID: {server_process.pid}")
 
     try:

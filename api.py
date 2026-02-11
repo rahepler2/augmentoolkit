@@ -21,7 +21,10 @@ from fastapi import (
     Path as FastApiPath,
     Query,
     Body,
+    Depends,
+    Security,
 )
+from fastapi.security import APIKeyHeader
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
@@ -182,11 +185,30 @@ class TaskParametersResponse(BaseModel):
     parameters: Dict[str, Any]
 
 
+# --- API Key Authentication ---
+# Set ATK_API_KEY environment variable to enable API key authentication.
+# When not set, authentication is disabled for backwards compatibility.
+ATK_API_KEY = os.environ.get("ATK_API_KEY", "")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: Optional[str] = Security(api_key_header)):
+    """Verify the API key if ATK_API_KEY is configured."""
+    if not ATK_API_KEY:
+        return  # Authentication disabled
+    if not api_key or api_key != ATK_API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or missing API key. Set the X-API-Key header.",
+        )
+
+
 # --- FastAPI App ---
 app = FastAPI(
     title="Augmentoolkit API",
     description="API for managing and running Augmentoolkit dataset generation pipelines using Huey.",
     version="1.0",
+    dependencies=[Depends(verify_api_key)],
 )
 
 # --- CORS Middleware ---
@@ -203,8 +225,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,  # Allows cookies to be included in requests
-    allow_methods=["*"],  # Allows all standard methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
 # TODO make sure taht pipeline settings in the config makes it run the proper pipeline
@@ -1562,6 +1584,15 @@ async def _save_uploaded_files(
         if not file.filename:
             logger.warning("Skipping upload for file without filename.")
             continue
+        # Enforce MAX_FILE_SIZE
+        file.file.seek(0, 2)  # Seek to end
+        file_size = file.file.tell()
+        file.file.seek(0)  # Seek back to start
+        if file_size > MAX_FILE_SIZE:
+            errors.append(
+                f"File '{file.filename}' exceeds maximum size of {MAX_FILE_SIZE // (1024*1024)} MB."
+            )
+            continue
         safe_filename = os.path.basename(file.filename)
         file_path = target_dir / safe_filename
         is_zip = safe_filename.lower().endswith(".zip")
@@ -1588,6 +1619,13 @@ async def _save_uploaded_files(
 
                 try:
                     with zipfile.ZipFile(file_path, "r", encoding="utf-8") as zip_ref:
+                        # Validate all member paths to prevent zip path traversal attacks
+                        for member in zip_ref.namelist():
+                            member_path = (extraction_path / member).resolve()
+                            if not str(member_path).startswith(str(extraction_path.resolve())):
+                                raise zipfile.BadZipFile(
+                                    f"Zip member '{member}' would extract outside target directory (path traversal attempt)"
+                                )
                         # Extract into the subdirectory
                         zip_ref.extractall(extraction_path)
                     logger.info(

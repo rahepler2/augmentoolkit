@@ -38,6 +38,7 @@ class RandomVariationStep(
         details_key=None,
     ):
         self.variation_generator_count = variation_generator_count
+        self._dict_lock = asyncio.Lock()
         super().__init__(
             sampling_params=sampling_params,
             output_file=output_file,  # Add output_file parameter for consolidated storage
@@ -275,18 +276,19 @@ class RandomVariationStep(
                 return
             # else:
 
-            self.save(
-                result=result,
-                key=key,
-                input_dict=input_dict,
-                input_data=input_dict.get(
-                    str(key)
-                ),  # Pass the current state from input_dict
-                full_response=full_response,
-                full_input=full_input,
-                completion_mode=completion_mode,
-                include_details=include_details,
-            )
+            async with self._dict_lock:
+                self.save(
+                    result=result,
+                    key=key,
+                    input_dict=input_dict,
+                    input_data=input_dict.get(
+                        str(key)
+                    ),  # Pass the current state from input_dict
+                    full_response=full_response,
+                    full_input=full_input,
+                    completion_mode=completion_mode,
+                    include_details=include_details,
+                )
         # End of for loop
 
     async def execute_pipeline(

@@ -57,7 +57,6 @@ if "SLURM_JOB_ID" in os.environ:
         pass
 
 import copy
-import pickle
 import platform
 import time
 from fastapi import FastAPI, HTTPException, Depends, status
@@ -194,27 +193,34 @@ def vectorize_documents(
     os.makedirs(bm25_cache_dir, exist_ok=True)
 
     # Attempt to load BM25 data from cache first
+    # We rebuild the BM25 index from the saved corpus data (JSON) instead of
+    # using pickle, which can execute arbitrary code if the file is tampered with.
     loaded_bm25_from_cache = False
-    if os.path.exists(bm25_index_path) and os.path.exists(bm25_corpus_data_path):
+    if os.path.exists(bm25_corpus_data_path):
         try:
-            logger.info(f"Attempting to load BM25 index from {bm25_index_path}")
-            with open(bm25_index_path, "rb") as f_idx:
-                bm25_index = pickle.load(f_idx)
             logger.info(
                 f"Attempting to load BM25 corpus data from {bm25_corpus_data_path}"
             )
             with open(bm25_corpus_data_path, "r", encoding="utf-8") as f_corpus:
                 bm25_corpus_data = json.load(f_corpus)
-            if bm25_index and bm25_corpus_data:
+            if bm25_corpus_data:
                 logger.info(
-                    "Successfully loaded BM25 index and corpus data from cache."
+                    f"Rebuilding BM25 index from {len(bm25_corpus_data)} cached corpus entries..."
+                )
+                tokenized_corpus = [
+                    word_tokenize(doc["original_question"].lower())
+                    for doc in bm25_corpus_data
+                ]
+                bm25_index = BM25Okapi(tokenized_corpus)
+                logger.info(
+                    "Successfully rebuilt BM25 index from cached corpus data."
                 )
                 loaded_bm25_from_cache = True
-            else:  # Should not happen if files exist and load without error
+            else:
                 bm25_index = None
                 bm25_corpus_data = []
                 logger.warning(
-                    "BM25 cache files found but loading resulted in empty data. Will rebuild."
+                    "BM25 cache file found but loading resulted in empty data. Will rebuild."
                 )
         except Exception as e:
             logger.warning(
@@ -435,12 +441,10 @@ def vectorize_documents(
             bm25_index = BM25Okapi(tokenized_corpus_for_bm25)
             logger.info("BM25 index built successfully.")
             try:
-                with open(bm25_index_path, "wb") as f_idx:
-                    pickle.dump(bm25_index, f_idx)
                 with open(bm25_corpus_data_path, "w", encoding="utf-8") as f_corpus:
                     json.dump(bm25_corpus_data, f_corpus, indent=2)
                 logger.info(
-                    f"BM25 index and corpus data saved to cache: {bm25_cache_dir}"
+                    f"BM25 corpus data saved to cache: {bm25_cache_dir} (index will be rebuilt from corpus data on next load)"
                 )
             except Exception as e:
                 print(f"Error saving BM25 data to cache: {e}")

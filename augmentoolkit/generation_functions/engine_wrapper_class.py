@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 from openai import AsyncOpenAI
 import cohere
@@ -30,9 +31,9 @@ class EngineWrapper:
         mode="api",  # can be one of api, aphrodite, llama.cpp, cohere
         input_observers=[],
         output_observers=[],
-        timeout_total=500.0,  # Total operation timeout
+        timeout_total=600.0,  # Total operation timeout
         timeout_read=240.0,  # Read timeout between chunks
-        timeout_api_call=600,  # Timeout for individual API calls
+        timeout_api_call=600,  # Timeout for individual API calls (must be <= timeout_total)
         **kwargs,
     ):
         self.mode = mode
@@ -111,8 +112,10 @@ class EngineWrapper:
             async for chunk in stream:
                 try:
                     completion = completion + chunk.choices[0].text
-                except Exception as e:
+                except (asyncio.TimeoutError, TimeoutError) as e:
                     timed_out = True
+                except Exception as e:
+                    logging.warning(f"Non-timeout error during completion streaming: {e}")
 
             for output_observer in self.output_observers:
                 output_observer(
@@ -177,21 +180,16 @@ class EngineWrapper:
                 )
             async for chunk in stream:
                 try:
-                    # print(chunk.choices)
-                    try:
-                        if chunk.choices[0].delta.content:
-                            completion = completion + chunk.choices[0].delta.content
-                    except Exception as e:
-                        # print("Really strange exception!")
-                        # print(chunk)
-                        # traceback.print_exc()
-                        pass
-                except Exception as e:
-                    print("\n\n------------CAUGHT EXCEPTION DURING GENERATION")
-                    print(e)
-                    traceback.print_exc()
+                    if chunk.choices[0].delta.content:
+                        completion = completion + chunk.choices[0].delta.content
+                except (asyncio.TimeoutError, TimeoutError) as e:
+                    logging.error(f"Timeout during chat generation: {e}")
                     timed_out = True
-                    print("\n\n-----/\------")
+                except (IndexError, AttributeError):
+                    # Empty chunk or missing delta content -- normal during streaming
+                    pass
+                except Exception as e:
+                    logging.warning(f"Non-timeout error during chat streaming: {e}")
 
             for output_observer in self.output_observers:
                 output_observer(messages, completion, False)
@@ -294,7 +292,12 @@ class EngineWrapper:
                     completion += text_chunk
                     # Yield chunk in SSE format
                     yield f"data: {json.dumps({'text': text_chunk, 'done': False})}\n\n"
+                except (asyncio.TimeoutError, TimeoutError) as e:
+                    timed_out = True
+                    yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+                    break
                 except Exception as e:
+                    logging.warning(f"Non-timeout error during completion streaming: {e}")
                     timed_out = True
                     yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
                     break
@@ -360,18 +363,21 @@ class EngineWrapper:
 
             async for chunk in stream:
                 try:
-                    try:
-                        if chunk.choices[0].delta.content:
-                            text_chunk = chunk.choices[0].delta.content
-                            completion += text_chunk
-                            # Yield chunk in SSE format
-                            yield f"data: {json.dumps({'text': text_chunk, 'done': False})}\n\n"
-                    except Exception as e:
-                        pass
+                    if chunk.choices[0].delta.content:
+                        text_chunk = chunk.choices[0].delta.content
+                        completion += text_chunk
+                        # Yield chunk in SSE format
+                        yield f"data: {json.dumps({'text': text_chunk, 'done': False})}\n\n"
+                except (asyncio.TimeoutError, TimeoutError) as e:
+                    logging.error(f"Timeout during chat streaming: {e}")
+                    timed_out = True
+                    yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+                    break
+                except (IndexError, AttributeError):
+                    # Empty chunk or missing delta content -- normal during streaming
+                    pass
                 except Exception as e:
-                    print("\n\n------------CAUGHT EXCEPTION DURING GENERATION")
-                    print(e)
-                    traceback.print_exc()
+                    logging.warning(f"Non-timeout error during chat streaming: {e}")
                     timed_out = True
                     yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
                     break
