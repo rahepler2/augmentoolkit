@@ -4,6 +4,13 @@ import os
 import inspect
 
 
+# Per-task timeout (seconds) for run_task_with_limit. Defaults to 1200s (20 min)
+# to accommodate slow local backends like Ollama, where a single task can chain
+# several LLM calls. Override without editing code via the ATK_TASK_TIMEOUT env var.
+DEFAULT_TASK_TIMEOUT = int(os.environ.get("ATK_TASK_TIMEOUT", "1200"))
+
+
+
 def setup_semaphore_and_engines(
     concurrency_limit: int,
     small_model: str,
@@ -21,7 +28,7 @@ def setup_semaphore_and_engines(
 ):
     semaphore = asyncio.Semaphore(concurrency_limit)
 
-    async def run_task_with_limit(task, timeout=60):
+    async def run_task_with_limit(task, timeout=DEFAULT_TASK_TIMEOUT):
         async with semaphore:
             try:
                 return await asyncio.wait_for(task, timeout=timeout)
