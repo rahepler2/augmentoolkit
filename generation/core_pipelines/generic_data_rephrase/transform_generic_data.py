@@ -116,7 +116,8 @@ def save_dict_to_jsonl(
                         "value": f"{cot_preface}\n{thought_process}\n{cot_suffix}\n{gpt}",
                     }
                 )
-            l.insert(0, {"from": "system", "value": system_message})
+            if system_message is not None:
+                l.insert(0, {"from": "system", "value": system_message})
             conversation_obj = {"conversations": l}
             file_conversations_list.append(conversation_obj)
             all_conversations.append(conversation_obj)

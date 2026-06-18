@@ -249,7 +249,8 @@ def create_axolotl_conversations(conversations, output_dir, template):
             # Add post-flawed answer segment
             if rendered_parts[1]:
                 segments.append({"label": True, "text": rendered_parts[1]})
-        except:
+        except Exception as e:
+            print(f"Error processing correction conversation, skipping: {e}")
             traceback.print_exc()
             continue
 

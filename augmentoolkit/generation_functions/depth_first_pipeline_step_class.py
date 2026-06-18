@@ -179,7 +179,7 @@ def create_depth_first_executor(
                 result = await future
                 # Increment counter only if the task was successful and added the final key
                 if result and isinstance(result, dict) and final_result_key in result:
-                    if not any(isinstance(v, dict) and v.get(final_result_key) == result[final_result_key] for k, v in completed_keys):
+                    if not any(isinstance(v, dict) and v.get(final_result_key) == result[final_result_key] for k, v in input_dict.items()):
                         counter += 1
                         progress_bar.update(1)
                         if task_id:

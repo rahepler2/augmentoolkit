@@ -34,9 +34,10 @@ def convert_pdf_to_text(pdf_path, output_txt_path):
     return text
 
 
-# Usage
-pdf_path = "./Introduction to Logic and Critical Thinking, by Matthew Van Cleave.pdf"
-output_txt_path = (
-    "Introduction to Logic and Critical Thinking, by Matthew Van Cleave.txt"
-)
-convert_pdf_to_text(pdf_path, output_txt_path)
+if __name__ == "__main__":
+    # Usage
+    pdf_path = "./Introduction to Logic and Critical Thinking, by Matthew Van Cleave.pdf"
+    output_txt_path = (
+        "Introduction to Logic and Critical Thinking, by Matthew Van Cleave.txt"
+    )
+    convert_pdf_to_text(pdf_path, output_txt_path)

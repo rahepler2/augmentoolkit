@@ -545,7 +545,7 @@ def save_plain_qatuples(
 
             if cite_sources_at_end:
                 source_items_data = []
-                rag_metas = [chunk["metadata"] for chunk in d["related_chunks"]]
+                rag_metas = [chunk["metadata"] for chunk in d.get("related_chunks", [])]
                 # deduplicate the rag_metas list
                 # Convert list of dicts to tuples of items for deduplication
                 source_items_data.append((d["metadata"], rag_metas))
@@ -615,7 +615,7 @@ def save_plain_qatuples(
 
             if cite_sources_at_end:
                 source_items_data = []
-                rag_metas = [chunk["metadata"] for chunk in qa_pair["related_chunks"]]
+                rag_metas = [chunk["metadata"] for chunk in qa_pair.get("related_chunks", [])]
                 source_items_data.append((qa_pair["metadata"], rag_metas))
                 sources_str = _build_sources_string(source_items_data)
             else:

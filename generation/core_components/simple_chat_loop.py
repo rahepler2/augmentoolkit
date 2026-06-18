@@ -153,7 +153,9 @@ async def simple_chat_loop(
         all_messages.append(usr_message)
         assistant_message = {
             "role": "assistant",
-            "content": response,  # Include prefix in stored response
+            # A timed-out generation can yield None; store an empty string so the
+            # next turn's count_tokens over history does not crash.
+            "content": response if response is not None else "",  # Include prefix in stored response
         }
         all_messages.append(assistant_message)
 

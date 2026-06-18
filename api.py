@@ -1587,7 +1587,7 @@ async def _save_uploaded_files(
                 )
 
                 try:
-                    with zipfile.ZipFile(file_path, "r", encoding="utf-8") as zip_ref:
+                    with zipfile.ZipFile(file_path, "r") as zip_ref:
                         # Extract into the subdirectory
                         zip_ref.extractall(extraction_path)
                     logger.info(

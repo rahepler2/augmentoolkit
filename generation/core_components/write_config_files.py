@@ -47,7 +47,6 @@ def write_training_config(
         "shuffle_merged_datasets": True,
         "gradient_accumulation_steps": 75,
         "micro_batch_size": 2,
-        "eval_batch_size": 1,
         "num_epochs": 12,
         "optimizer": "paged_adamw_8bit",
         "lr_scheduler": "constant",

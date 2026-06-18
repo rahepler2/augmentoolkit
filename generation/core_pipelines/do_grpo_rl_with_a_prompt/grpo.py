@@ -324,8 +324,9 @@ class MultiDataset(Dataset):
 
     def _deterministic_sample(self, dataset, n_samples):
         if len(dataset) <= n_samples:
+            dataset_path = dataset[0]["path"] if len(dataset) > 0 else "<empty dataset>"
             logging.warning(
-                f"Dataset at {dataset[0]['path']} has fewer samples ({len(dataset)}) than requested ({n_samples}). Using all available samples."
+                f"Dataset at {dataset_path} has fewer samples ({len(dataset)}) than requested ({n_samples}). Using all available samples."
             )
             return dataset
 
@@ -563,7 +564,16 @@ def setup_trainer(
         # not ideal
         # so no
 
-        expected_len = len(next(iter(kwargs.values())))
+        if not kwargs:
+            raise ValueError(
+                "Reward function received no kwargs; cannot determine expected length."
+            )
+        first_kwarg_value = next(iter(kwargs.values()))
+        if not hasattr(first_kwarg_value, "__len__"):
+            raise ValueError(
+                f"Expected a sized (list-like) first kwarg to determine expected length, got {type(first_kwarg_value)}."
+            )
+        expected_len = len(first_kwarg_value)
 
         # kwargs["engine_wrapper"] = [EngineWrapper() for _ in range(expected_len)]
 
@@ -661,8 +671,8 @@ def setup_trainer(
                 and combined_reward >= score_save_threshold
             ):  # if for some reason you're ignoring recommendations and not using a dataset with conversations, set the score save threshold immensely high.
                 save_high_score_response(
-                    prompt_messages=kwargs_at_idx["prompts"],
-                    response_text=kwargs_at_idx["completions"],
+                    prompt_messages=kwargs_at_idx.get("prompts"),
+                    response_text=kwargs_at_idx.get("completions"),
                     high_scoring_save_path=os.path.join(
                         output_dir, high_scoring_save_path
                     ),

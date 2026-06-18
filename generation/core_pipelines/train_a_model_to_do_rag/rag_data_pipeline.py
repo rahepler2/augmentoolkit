@@ -352,15 +352,19 @@ async def rag_data_pipeline(
             if item["rag_failed"]:  # select random chunks
                 available_keys = [k for k in all_paragraphs if k != key]
                 # print(f"[RAG Prep] Failed RAG - Available keys for random selection: {len(available_keys)}")
-                selected_keys = this_random.sample(available_keys, num_chunks)
+                selected_keys = this_random.sample(
+                    available_keys, min(num_chunks, len(available_keys))
+                )
                 # print(f"[RAG Prep] Failed RAG - Selected keys: {selected_keys}")
                 item["rag_chunks"] = [all_paragraphs[k] for k in selected_keys]
             else:  # select original chunk + random others
                 # print(f"[RAG Prep] Successful RAG - Including original chunk")
                 item["rag_chunks"] = [all_paragraphs[key]]
                 if num_chunks > 1:
+                    additional_available_keys = [k for k in all_paragraphs if k != key]
                     additional_keys = this_random.sample(
-                        [k for k in all_paragraphs if k != key], num_chunks - 1
+                        additional_available_keys,
+                        min(num_chunks - 1, len(additional_available_keys)),
                     )
                     # print(f"[RAG Prep] Successful RAG - Adding {len(additional_keys)} additional chunks: {additional_keys}")
                     item["rag_chunks"].extend(

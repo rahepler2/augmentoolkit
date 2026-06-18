@@ -1,6 +1,7 @@
 # tentative helpers file, to be imported by api.py
 import os
 import shutil
+import tempfile
 import zipfile
 from pathlib import Path as PyPath
 from typing import Optional, List
@@ -45,15 +46,23 @@ def get_safe_path(base_dir: PyPath, unsafe_path: str) -> PyPath:
         base_dir_resolved = base_dir.resolve()
         # print(f"DEBUG [get_safe_path]: Resolved base_dir='{base_dir_resolved}'")
 
-        # Ensure the final path is within the base_dir
-        # Check if resolved_path starts with base_dir resolved path
-        is_safe = str(resolved_path).startswith(str(base_dir_resolved))
-        # print(f"DEBUG [get_safe_path]: Checking safety: '{resolved_path}' startswith '{base_dir_resolved}' -> {is_safe}")
+        # Ensure the final path is within the base_dir.
+        # Use is_relative_to (not str.startswith) so a sibling directory sharing
+        # a name prefix (e.g. "/data/foobar" vs "/data/foo") cannot bypass the
+        # traversal guard.
+        is_safe = resolved_path == base_dir_resolved or resolved_path.is_relative_to(
+            base_dir_resolved
+        )
+        # print(f"DEBUG [get_safe_path]: Checking safety: '{resolved_path}' within '{base_dir_resolved}' -> {is_safe}")
         if not is_safe:
             # print(f"ERROR [get_safe_path]: Path traversal attempt detected!")
             raise HTTPException(status_code=400, detail="Invalid path: Access denied.")
         # print(f"DEBUG [get_safe_path]: Path deemed safe. Returning '{resolved_path}'")
         return resolved_path
+    except HTTPException:
+        # Re-raise intentional access-control errors untouched instead of
+        # masking them with the generic handler below.
+        raise
     except Exception as e:
         # Catch potential resolution errors or permission issues during resolve()
         # print(f"ERROR [get_safe_path]: Exception during path resolution/validation for unsafe_path='{unsafe_path}' in base_dir='{base_dir}': {e}")
@@ -253,8 +262,11 @@ def handle_download_item(base_dir: PyPath, relative_path: str) -> FileResponse:
             f"Path in '{abs_base_dir.name}' is a directory, preparing zip archive for {target_path}"
         )
         zip_filename = f"{download_filename}.zip"
-        # Use tempfile module for more robust temp file creation if needed
-        temp_zip_path = PyPath(f"/tmp/{zip_filename}")
+        # Use a unique temp file to avoid collisions on concurrent downloads
+        # of identically-named directories, and to remain portable.
+        temp_zip_fd, temp_zip_name = tempfile.mkstemp(suffix=".zip")
+        os.close(temp_zip_fd)
+        temp_zip_path = PyPath(temp_zip_name)
         # print(f"DEBUG [handle_download_item]: Temp zip path: '{temp_zip_path}'")
         try:
             zip_directory(target_path, temp_zip_path)

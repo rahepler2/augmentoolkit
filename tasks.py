@@ -145,7 +145,8 @@ def run_pipeline_task(
             f"Task {task_id}: Successfully called flatten_config. Flat params (first 500 chars): {str(parameters_flat)[:500]}"
         )
     except Exception as fc_e:
-        print(f"Task {task_id}: Error during flatten_config: {fc_e}", exc_info=True)
+        print(f"Task {task_id}: Error during flatten_config: {fc_e}")
+        traceback.print_exc()
         # Set final status to FAILED
         set_final_status(
             task_id,
@@ -307,9 +308,9 @@ def run_pipeline_task(
                 print(f"Task {task_id}: Added override-json to command.")
             except Exception as jd_e:
                 print(
-                    f"Task {task_id}: Error during json.dumps for command parameters: {jd_e}",
-                    exc_info=True,
+                    f"Task {task_id}: Error during json.dumps for command parameters: {jd_e}"
                 )
+                traceback.print_exc()
                 set_final_status(
                     task_id,
                     "FAILED",
@@ -458,7 +459,7 @@ def run_pipeline_task(
     except Exception as e:
         # This catches errors in the task logic itself (before/after subprocess) OR the RuntimeError raised above
         error_message = f"Exception during pipeline task {task_id}: {e}"
-        print(error_message, exc_info=True)
+        print(error_message)
         detailed_error = traceback.format_exc()
         print(detailed_error)  # Log detailed traceback
 

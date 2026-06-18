@@ -433,7 +433,7 @@ def read_jsonl_file(file_path):
 
 def read_text(
     input_dir=None,
-    extensions=[".txt", ".md", ".pdf", ".docx", ".epub", ".html", ".jsonl"],
+    extensions=None,
     output_dir=None,
 ):
     """
@@ -447,6 +447,8 @@ def read_text(
     Returns:
         list: List of dictionaries, each with 'text' and 'metadata' keys.
     """
+    if extensions is None:
+        extensions = [".txt", ".md", ".pdf", ".docx", ".epub", ".html", ".jsonl"]
     cache_path = None
     if output_dir:
         # Use absolute path for input_dir for consistent hashing
@@ -650,7 +652,7 @@ def chunk_text_list(
 
 def read_and_chunk_text(
     input_dir="./input",
-    extensions=[".txt", ".md", ".pdf", ".docx", ".epub", ".html", ".jsonl"],
+    extensions=None,
     chunk_size=1500,
     use_subset=False,
     subset_size=1500,
@@ -658,6 +660,8 @@ def read_and_chunk_text(
     output_dir=None,
     seed=1048596,
 ):  # for splitting up documents
+    if extensions is None:
+        extensions = [".txt", ".md", ".pdf", ".docx", ".epub", ".html", ".jsonl"]
     # Print source texts for debugging
     # source_texts = []
     # for extension in extensions:
@@ -818,7 +822,7 @@ def process_sharegpt_conversations(input_conversations):
 
 # Add new reading function
 def read_audio_video(
-    input_dir="./input", extensions=[".mp3", ".wav", ".mp4", ".avi", ".mov", ".flac"]
+    input_dir="./input", extensions=None
 ):
     """
     Reads audio/video files and returns transcribed text with metadata.
@@ -830,6 +834,8 @@ def read_audio_video(
     Returns:
         list: List of dictionaries with 'text' and 'metadata' keys
     """
+    if extensions is None:
+        extensions = [".mp3", ".wav", ".mp4", ".avi", ".mov", ".flac"]
     source_files = []
     for extension in extensions:
         path = f"{input_dir}/**/*{extension}"
@@ -1007,7 +1013,7 @@ def _extract_sharegpt_pairs(conversations, conv_idx=0, source_file=None):
 
                 # Create stringified text version of just this pair
                 pair_text = (
-                    f"HUMAN:\\n{human_msg['value']}\\n\\nGPT:\\n{gpt_msg['value']}"
+                    f"HUMAN:\n{human_msg['value']}\n\nGPT:\n{gpt_msg['value']}"
                 )
 
                 # Calculate message indices in the original conversation

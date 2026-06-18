@@ -111,7 +111,7 @@ def create_filter_chunks_step(
 def filter_out_failed_items(item_list, key_to_check="judgement"):
     i = 0
     while i < len(item_list):
-        if not item_list[i][key_to_check]:
+        if not item_list[i].get(key_to_check):
             item_list.pop(i)
         else:
             i += 1

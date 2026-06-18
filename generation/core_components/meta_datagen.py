@@ -101,15 +101,15 @@ def create_meta_dataset(
                     flattened_value = value.copy()
                     keys_to_process = list(value.keys())
 
-                    for key in keys_to_process:
-                        if isinstance(value[key], dict):
+                    for inner_key in keys_to_process:
+                        if isinstance(value[inner_key], dict):
                             # For each nested dictionary, add its keys to the top level with prefix
-                            for subkey, subvalue in value[key].items():
-                                flattened_key = f"{key}_{subkey}"
+                            for subkey, subvalue in value[inner_key].items():
+                                flattened_key = f"{inner_key}_{subkey}"
                                 flattened_value[flattened_key] = subvalue
 
                     # Use the flattened dictionary for template rendering
-                    value = flattened_value
+                    render_value = flattened_value
 
                     with open(extra, "r", encoding="utf-8") as f:
                         prompt = f.read()
@@ -121,7 +121,7 @@ def create_meta_dataset(
                             # set message to a jinja2 template
                             message_template = jinja2.Template(message["content"])
                             # format the values into the text of each message
-                            message["content"] = message_template.render(**value)
+                            message["content"] = message_template.render(**render_value)
 
                         prompt = rename_oai_messages_to_sharegpt(prompt)
                         chat_list.append(

@@ -906,6 +906,9 @@ async def rag_server(
 
             # System prompt has RAG added to it. So yes we do the systemprompt building first then we truncatem essagess after.
 
+            # Default to the bare prompt so this is always bound, even when no RAG
+            # chunks were retrieved (otherwise count_tokens below hits UnboundLocalError).
+            system_content_with_rag = prompt
             if current_rag_chunks_for_prompt:
                 rag_context_str = stringify_rag_chunks(current_rag_chunks_for_prompt)
                 system_content_with_rag = f"{prompt}\n{rag_context_str}"

@@ -13,10 +13,12 @@ def resolve_path(path_string, aliases, depth=0, max_depth=5):
 
     # 1. Check for exact match alias (full path replacement)
     if resolved in aliases:
+        # Capture the alias value BEFORE recursion reassigns 'resolved'.
+        alias_value = aliases[resolved]
         # Recursively resolve the alias's value. Pass the ORIGINAL path_string for error reporting.
-        resolved = resolve_path(aliases[resolved], aliases, depth + 1, max_depth)
+        resolved = resolve_path(alias_value, aliases, depth + 1, max_depth)
         # If recursion hit max depth, return the result from that level
-        if depth + 1 > max_depth and resolved == aliases[resolved]:
+        if depth + 1 > max_depth and resolved == alias_value:
             return resolved  # Return the unresolved alias value causing the issue
         # Continue resolution in case the resolved value itself contains a prefix alias
 

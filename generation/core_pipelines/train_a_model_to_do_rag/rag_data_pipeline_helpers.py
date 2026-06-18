@@ -85,6 +85,11 @@ def save_combined_conversations(
     """
     axolotl_conversations = []
 
+    if not final_assistant_prompts:
+        raise ValueError(
+            "final_assistant_prompts is empty; cannot sample a system prompt."
+        )
+
     # Shuffle and group conversations
     random.shuffle(combined_conversations)
 

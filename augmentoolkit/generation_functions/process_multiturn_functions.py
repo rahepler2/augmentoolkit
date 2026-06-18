@@ -331,10 +331,12 @@ if __name__ == "__main__":
         ("Charname2", "How are you?"),
         ("Charname1", "Fine, thank you for asking!"),
     ]
-    print(
-        check_for_repeated_dialogue_answers(dialogues4, qatuples_repeated_answers, 2)
-    )  # Expected True (no repetition)
-    print("Expected True (no repetition)")
+    # check_for_repeated_dialogue_answers is currently not defined (implementation commented out above),
+    # so its test calls are disabled to avoid a NameError when running this module.
+    # print(
+    #     check_for_repeated_dialogue_answers(dialogues4, qatuples_repeated_answers, 2)
+    # )  # Expected True (no repetition)
+    # print("Expected True (no repetition)")
     dialogues5 = [
         ("Charname1", "Hello"),
         ("Charname2", "How are you?"),
@@ -343,10 +345,10 @@ if __name__ == "__main__":
             "Fine, thank you for asking! It's nice today, after all, so I'm Fine, thank you for asking!",
         ),
     ]
-    print(
-        check_for_repeated_dialogue_answers(dialogues5, qatuples_repeated_answers, 2)
-    )  # Expected False (repetition)
-    print("Expected False (repetition)")
+    # print(
+    #     check_for_repeated_dialogue_answers(dialogues5, qatuples_repeated_answers, 2)
+    # )  # Expected False (repetition)
+    # print("Expected False (repetition)")
 
     # Test cases for check_repeated_answer
     # print("\nTesting check_repeated_answer:")

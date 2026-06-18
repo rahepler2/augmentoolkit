@@ -114,7 +114,7 @@ def write_jsonl(data: List[Dict[str, Any]], file_path: str):
     with open(file_path, "w", encoding="utf-8") as f:
         for item in data:
             json.dump(item, f, ensure_ascii=False)
-            f.write("\\n")
+            f.write("\n")
 
 
 def combine_single_and_multi_turn(
@@ -183,14 +183,16 @@ def combine_single_and_multi_turn(
             conv_obj = convs[original_multi_idx]
             # print("!!CONVOBJ")
             # print(conv_obj)
-            conv = conv_obj["conversations"]
+            conv = conv_obj.get("conversations", [])
             # print(f"Trying multi-turn conv index {original_multi_idx} ({len(conv)} messages)") # Reduce verbosity
 
             pairs_to_add = sum(1 for msg in conv if msg.get("from") == "gpt")
             # print(f"Pairs to add from multi-turn: {pairs_to_add}") # Reduce verbosity
 
             # Handle system prompt from multi-turn
-            multi_system_message = conv[0] if conv[0].get("from") == "system" else None
+            multi_system_message = (
+                conv[0] if conv and conv[0].get("from") == "system" else None
+            )
             start_offset = 1 if multi_system_message else 0
 
             if multi_system_message:

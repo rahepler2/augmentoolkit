@@ -104,9 +104,9 @@ def process_multiple_datasets(  # Deterministic sampling
                     16,
                 )
             )
-            combined.append(processed[:n_samples])
+            combined.extend(processed[:n_samples])
         else:
-            combined.append(processed)
+            combined.extend(processed)
             logging.warning(f"Insufficient samples: {len(processed)}/{n_samples}")
 
     # Deterministic shuffle using hashed sorting

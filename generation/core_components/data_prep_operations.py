@@ -130,6 +130,10 @@ def create_subset(
 
     if context_to_add and context_to_add_type:
         for item in subset:
+            conversations = item.get("conversations")
+            # Skip items without a conversations list (e.g. completion/text-format items)
+            if not conversations:
+                continue
             if context_to_add_type == "system":
                 # see if the first message is a system message
                 if item["conversations"][0]["from"] == "system":

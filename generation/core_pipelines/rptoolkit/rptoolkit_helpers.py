@@ -811,7 +811,7 @@ def get_base_name(full_name: str) -> str:
             
     # 2c. Remove Roman numeral suffixes (e.g., " III", " IV") from the end of the (now possibly shorter) name.
     # Looks for: a space, then one or more Roman numeral characters, at the end of the string.
-    normalized_name = re.sub(r'\s+([IVXLCDM]+)$', '', normalized_name, re.IGNORECASE).strip()
+    normalized_name = re.sub(r'\s+([IVXLCDM]+)$', '', normalized_name, flags=re.IGNORECASE).strip()
             
     return normalized_name
 
@@ -834,13 +834,13 @@ def parse_story_messages(large_mode):
 
         # print(chatlog_list)
         threshold_message_index = find_message_exceeding_threshold(chatlog_list, 650)
-        if threshold_message_index:
+        if threshold_message_index is not None:
             print("\n\TOO LONG MESSAGES DETECTED -- TRUNCATING STORY")
             chatlog_list = chatlog_list[:threshold_message_index]
             truncated = True
 
         duplicate_message_index = find_duplicate_character_message(chatlog_list)
-        if duplicate_message_index:
+        if duplicate_message_index is not None:
             print("\n\nDUPLICATE MESSAGES DETECTED -- TRUNCATING STORY")
             chatlog_list = chatlog_list[:duplicate_message_index] + [
                 chatlog_list[duplicate_message_index]

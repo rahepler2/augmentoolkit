@@ -112,7 +112,29 @@ make_atomic_facts_step = PipelineStep(
 
 def extract_inferred_facts(output):
     cleaned_output = remove_think_tags(output)
-    return cleaned_output.split("<inferred_facts>")[1].split("</inferred_facts>")[0]
+
+    # First try to find inferred facts tags
+    if "<inferred_facts>" in cleaned_output and "</inferred_facts>" in cleaned_output:
+        return cleaned_output.split("<inferred_facts>")[1].split("</inferred_facts>")[0]
+    else:
+        # Fallback: Find last numbered list in the text
+        lines = cleaned_output.split("\n")
+        collected = []
+        in_list = False
+
+        # Iterate in reverse to find the last contiguous numbered list
+        for line in reversed(lines):
+            stripped_line = line.strip()
+            # Match lines starting with "1. ", "2. ", etc.
+            if re.match(r"^\d+\.\s", stripped_line):
+                collected.append(stripped_line)
+                in_list = True
+            elif in_list:  # Stop when we hit non-list line after list starts
+                break
+
+        # Reverse to restore original order and join lines
+        collected.reverse()
+        return "\n".join(collected) if collected else ""
 
 
 make_inferred_facts_step = PipelineStep(
@@ -128,7 +150,7 @@ make_inferred_facts_step = PipelineStep(
     validation_function=validate_atomic_fact_extraction,
     max_retries=3,
     result_key="inferred_facts",
-    output_processor=extract_atomic_facts,
+    output_processor=extract_inferred_facts,
     details_key="inferred_facts_details",
 )
 

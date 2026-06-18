@@ -16,9 +16,9 @@ import io
 # where the default encoding is not UTF-8. It prevents UnicodeEncodeError
 # when printing characters that are not in the default system codepage.
 # ==============================================================================
-if sys.stdout.encoding != 'utf-8':
+if getattr(sys.stdout, "encoding", None) != 'utf-8' and hasattr(sys.stdout, "buffer"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-if sys.stderr.encoding != 'utf-8':
+if getattr(sys.stderr, "encoding", None) != 'utf-8' and hasattr(sys.stderr, "buffer"):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 # ==============================================================================
 
@@ -59,23 +59,26 @@ def flatten_config(config, no_flatten_keys=None):
     return flattened
 
 
+super_config_path = Path(__file__).parent / "super_config.yaml"
 try:
-    with open("super_config.yaml", "r", encoding="utf-8") as f:
+    with open(super_config_path, "r", encoding="utf-8") as f:
         super_config = yaml.safe_load(f)
     path_aliases = super_config.get(
         "path_aliases", {}
     )  # Get aliases, default to empty dict if not present
 
 except FileNotFoundError:
-    print(f"Error: Super config file not found at super_config.yaml")
+    print(f"Error: Super config file not found at {super_config_path}")
     sys.exit(1)
 # Load super config
 except yaml.YAMLError as e:
-    print(f"Error parsing super config file super_config.yaml: {e}")
+    print(f"Error parsing super config file {super_config_path}: {e}")
     sys.exit(1)
 
 
-def run_pipeline(node, config, override_fields={}):
+def run_pipeline(node, config, override_fields=None):
+    if override_fields is None:
+        override_fields = {}
     # Resolve node and config paths using aliases
     resolved_node_path = resolve_path(node, path_aliases)
     # print(f"DEBUG: Resolved node path: {resolved_node_path}")
@@ -127,8 +130,10 @@ def run_pipeline(node, config, override_fields={}):
 
 
 def run_pipeline_config(
-    config, resolved_node_path, override_fields={}
+    config, resolved_node_path, override_fields=None
 ):  # the second half of run_pipeline, extracted so that it is easier to use in isolation as an api.
+    if override_fields is None:
+        override_fields = {}
     # Merge pipeline config from super_config with loaded config file parameters
     # Parameters defined directly in the pipeline entry override those in the loaded config file.
     # Parameters passed in as overrides override those in either.
@@ -145,7 +150,7 @@ def run_pipeline_config(
         function = load_function_from_path(resolved_node_path)
     except (ImportError, AttributeError, ValueError) as e:
         print(f"Error loading function from node path '{resolved_node_path}': {e}")
-        print(f"Skipping pipeline: resolved_node_path")  # Use name if available
+        print(f"Skipping pipeline: {resolved_node_path}")  # Use name if available
         return  # Skip this pipeline if function cannot be loaded
 
     if asyncio.iscoroutinefunction(function):

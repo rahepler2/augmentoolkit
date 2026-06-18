@@ -31,7 +31,7 @@ except redis.exceptions.ConnectionError as e:
 
 # Helper constants/functions (optional)
 PROGRESS_KEY_PREFIX = "pipeline_progress:"
-DEFAULT_EXPIRY_SECONDS = 86400 * 4  # 2 days
+DEFAULT_EXPIRY_SECONDS = 86400 * 4  # 4 days
 
 
 def get_progress_key(task_id: str) -> str:

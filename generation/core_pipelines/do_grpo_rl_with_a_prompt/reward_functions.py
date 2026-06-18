@@ -189,7 +189,7 @@ def correctness_reward_func(
             f"\nResponse:\n{response}",
             f"\nExtracted:\n{extracted_response}",
         )
-        return 2.0 if extracted_response == answer else 0.0
+        return 2.0 if extracted_response == answer[0] else 0.0
 
     return inner
 

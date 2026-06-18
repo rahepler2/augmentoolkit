@@ -414,6 +414,10 @@ async def factual_datagen_full(  # there will be quite a few args here
         input_dir_name = input_dir["input_dir_name"]
         print(f"Processing files for input directory: {input_dir_name}")
 
+        # Use this input dir's own chunks (not whatever was left bound from the
+        # generation loop above, which would be the last dir's chunks).
+        text_chunks = text_chunks_dict[input_dir_name]
+
         # Copy final_output.jsonl from representation variations
         repvar_output = os.path.join(
             output_dir,
@@ -503,15 +507,22 @@ async def factual_datagen_full(  # there will be quite a few args here
     multi_turn_by_index = {}
     combined_chats = []
 
-    for idx, prompt in enumerate(final_assistant_prompts_no_rag):
-        if input_dir["final_system_prompt_additional_context"]:
-            final_assistant_prompts_no_rag[idx] = (
-                prompt + " " + str(input_dir["final_system_prompt_additional_context"])
-            )
     for input_dir in input_dirs:
         # first, we need to load the prompts
         factual_sft_outputs = []
         input_dir_name = input_dir["input_dir_name"]
+
+        # Build this input dir's assistant prompts, optionally augmented with its
+        # OWN additional system-prompt context. Done per-dir on a fresh copy so the
+        # shared prompt list isn't mutated/compounded across input dirs.
+        additional_context = input_dir.get("final_system_prompt_additional_context")
+        if additional_context:
+            final_assistant_prompts_no_rag_for_dir = [
+                f"{prompt} {additional_context}"
+                for prompt in final_assistant_prompts_no_rag
+            ]
+        else:
+            final_assistant_prompts_no_rag_for_dir = list(final_assistant_prompts_no_rag)
         for i in range(number_of_factual_sft_generations_to_do):
             for way in factual_sft:
                 print(
@@ -557,7 +568,7 @@ async def factual_datagen_full(  # there will be quite a few args here
                     "conversation_instructions": None,
                     "do_not_use_system_prompts": False,
                     "skip_question_check": skip_question_check,
-                    "final_assistant_prompts_no_rag": final_assistant_prompts_no_rag,
+                    "final_assistant_prompts_no_rag": final_assistant_prompts_no_rag_for_dir,
                     "final_assistant_prompts_rag": [
                         "does not matter, RAG in this pipeline is deprecated, there's a separate pipeline for that now"
                     ],

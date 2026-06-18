@@ -206,7 +206,7 @@ def sentence_chunking_algorithm(file_path, max_char_length=1900):
                 char_count += paragraph_char_count
             else:
                 chunks_with_source.append(
-                    {"paragraph": "".join(current_chunk), "metadata": source_name}
+                    {"paragraph": "\n\n".join(current_chunk), "metadata": source_name}
                 )
                 current_chunk = [paragraph]
                 char_count = paragraph_char_count
@@ -214,7 +214,7 @@ def sentence_chunking_algorithm(file_path, max_char_length=1900):
     # Add the last chunk if it exists
     if current_chunk:
         chunks_with_source.append(
-            {"paragraph": "".join(current_chunk), "metadata": source_name}
+            {"paragraph": "\n\n".join(current_chunk), "metadata": source_name}
         )
 
     # filter out chunks with fewer than 50 characters

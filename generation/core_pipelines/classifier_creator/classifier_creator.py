@@ -46,6 +46,7 @@ def format_class_list(class_list):
     result_str = ""
     for idx, item in enumerate(class_list):
         result_str += f"{idx}. {item}\n"
+    return result_str
 
 
 def get_accuracy(dataset_dict):
@@ -500,13 +501,13 @@ async def classifier_creator(
             run_classifier(model=model, output_dir=output_dir, input_dict=test_set_dict)
 
             if (
-                acc := get_accuracy(test_set_dict) >= required_accuracy
-            ):  # all_labels_same will have to work regardless of item order, since async. Thankfully dicts see to this now.
+                acc := get_accuracy(test_set_dict)
+            ) >= required_accuracy:  # all_labels_same will have to work regardless of item order, since async. Thankfully dicts see to this now.
                 has_passed_LLM_validation = True
                 set_progress(
                     task_id,
                     progress=1.0,
-                    message=f"Last classifier reached accuracy of {acc} (target {required_accuracy}) with a dataset {len(sub_dataset_dict.item())} items long. Good enough classifier trained! Saving...",
+                    message=f"Last classifier reached accuracy of {acc} (target {required_accuracy}) with a dataset {len(sub_dataset_dict)} items long. Good enough classifier trained! Saving...",
                 )
             else:
                 sub_dataset_dict = (
@@ -555,7 +556,7 @@ async def classifier_creator(
                 set_progress(
                     task_id,
                     progress=0.2 + 0.8 * required_accuracy / acc,
-                    message=f"Last classifier reached accuracy of {acc} (target {required_accuracy}) with a dataset {len(sub_dataset_dict.item())} items long. Attempting to train another...",
+                    message=f"Last classifier reached accuracy of {acc} (target {required_accuracy}) with a dataset {len(sub_dataset_dict)} items long. Attempting to train another...",
                 )
 
         else:
