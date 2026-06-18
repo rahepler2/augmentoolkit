@@ -17,7 +17,7 @@ from huey_config import huey
 import json
 from redis_config import redis_client, set_progress
 from resolve_path import resolve_path
-from run_augmentoolkit import flatten_config
+from run_augmentoolkit import flatten_config, apply_llm_overrides
 
 if TYPE_CHECKING:
     from huey.api import Task
@@ -141,6 +141,9 @@ def run_pipeline_task(
     )
     try:
         parameters_flat = flatten_config(parameters, no_flatten_keys=no_flatten_keys)
+        # Apply global LLM overrides (llm_config.yaml) so the web/API path honors
+        # the same single source of truth as the CLI path.
+        parameters_flat = apply_llm_overrides(parameters_flat)
         print(
             f"Task {task_id}: Successfully called flatten_config. Flat params (first 500 chars): {str(parameters_flat)[:500]}"
         )

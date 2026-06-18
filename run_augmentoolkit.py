@@ -59,6 +59,87 @@ def flatten_config(config, no_flatten_keys=None):
     return flattened
 
 
+# ==============================================================================
+# Global LLM overrides
+# ------------------------------------------------------------------------------
+# Optional root-level file that lets you set the LLM connection details
+# (base_url, api_key, models, mode) for EVERY pipeline in one place, instead of
+# editing the repeated *_base_url / *_small_model / ... fields in every block of
+# every config. When enabled, these values OVERRIDE whatever the pipeline config
+# specified. Ideal for pointing all datagen at a single local backend (e.g.
+# Ollama's OpenAI-compatible endpoint at http://localhost:11434/v1).
+# ==============================================================================
+GLOBAL_LLM_CONFIG_PATH = Path(__file__).parent / "llm_config.yaml"
+
+# Maps a flattened-key suffix to the override field that controls it. Note we
+# match `_small_mode`/`_large_mode` rather than `_mode` so we never clobber
+# unrelated keys like `completion_mode`.
+_LLM_OVERRIDE_SUFFIXES = {
+    "_base_url": "base_url",
+    "_api_key": "api_key",
+    "_small_model": "small_model",
+    "_large_model": "large_model",
+    "_small_mode": "mode",
+    "_large_mode": "mode",
+}
+
+
+def load_global_llm_overrides(path=GLOBAL_LLM_CONFIG_PATH):
+    """Load the optional root-level global LLM override config.
+
+    Returns a dict with any of base_url / api_key / small_model / large_model /
+    mode, or an empty dict if the file is missing, unparseable, or disabled.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+    except yaml.YAMLError as e:
+        print(f"Warning: could not parse global LLM config {path}: {e}. Ignoring it.")
+        return {}
+
+    overrides = data.get("llm_overrides", {}) or {}
+    if not overrides.get("enabled", False):
+        return {}
+
+    # `model` is a shorthand that fills both small and large when those are
+    # not set individually (handles the present-but-null YAML case too).
+    if overrides.get("model") is not None:
+        if overrides.get("small_model") is None:
+            overrides["small_model"] = overrides["model"]
+        if overrides.get("large_model") is None:
+            overrides["large_model"] = overrides["model"]
+    return overrides
+
+
+def apply_llm_overrides(flattened_config, overrides=None):
+    """Override per-block LLM connection settings with global values.
+
+    For every flattened key ending in a recognized suffix (e.g. `_base_url`,
+    `_small_model`), replace its value with the corresponding global override
+    when one is set. No-op if no global overrides are configured.
+    """
+    if overrides is None:
+        overrides = load_global_llm_overrides()
+    if not overrides:
+        return flattened_config
+
+    applied = {}
+    for key in list(flattened_config.keys()):
+        for suffix, field in _LLM_OVERRIDE_SUFFIXES.items():
+            if key.endswith(suffix) and overrides.get(field) is not None:
+                flattened_config[key] = overrides[field]
+                applied[key] = overrides[field]
+                break
+    if applied:
+        print(
+            f"Applied global LLM overrides (llm_config.yaml) to {len(applied)} "
+            f"field(s): {sorted(applied)}"
+        )
+    return flattened_config
+
+
 super_config_path = Path(__file__).parent / "super_config.yaml"
 try:
     with open(super_config_path, "r", encoding="utf-8") as f:
@@ -143,6 +224,9 @@ def run_pipeline_config(
         "no_flatten", []
     )  # Get no_flatten from loaded/merged config
     flattened_config = flatten_config(config, no_flatten_keys=no_flatten_keys)
+    # Apply global LLM overrides (llm_config.yaml) before CLI overrides, so an
+    # explicit --override-json still takes highest precedence.
+    flattened_config = apply_llm_overrides(flattened_config)
     flattened_config.update(override_fields)
 
     # Import the target function using the resolved node path

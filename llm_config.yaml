@@ -1,0 +1,36 @@
+# ==============================================================================
+# Global LLM configuration (optional, single source of truth)
+# ==============================================================================
+# Set the LLM connection details for ALL pipelines in ONE place, instead of
+# editing the repeated *_base_url / *_api_key / *_small_model / *_large_model /
+# *_small_mode / *_large_mode fields in every block of every config under
+# external_configs/.
+#
+# When `enabled: true`, the values below OVERRIDE the matching per-block fields
+# in whatever pipeline config you run (both the CLI and the web interface honor
+# this file). Leave a value blank/null to NOT override that field, in which case
+# the per-block value from the pipeline config is kept.
+#
+# Precedence (highest wins):
+#   1. CLI --override-json
+#   2. this file (llm_config.yaml) when enabled
+#   3. the per-block values in the pipeline config
+#
+# This is ideal for running everything against a single local backend such as
+# Ollama, whose OpenAI-compatible endpoint lives at http://localhost:11434/v1.
+# ==============================================================================
+
+llm_overrides:
+  enabled: false                        # flip to true to activate global overrides
+
+  base_url: http://localhost:11434/v1   # applied to every *_base_url
+  api_key: ollama                       # applied to every *_api_key (any non-empty string works for Ollama)
+
+  # `model` is a shorthand that fills BOTH the small and large model for every
+  # pipeline. To use different models, leave `model` blank and set small_model /
+  # large_model individually instead.
+  model: qwen2.5:14b                    # must match your `ollama list` tag EXACTLY
+  small_model:                          # overrides every *_small_model (falls back to `model`)
+  large_model:                          # overrides every *_large_model (falls back to `model`)
+
+  mode: api                             # applied to every *_small_mode / *_large_mode
