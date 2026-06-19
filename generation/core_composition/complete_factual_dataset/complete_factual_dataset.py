@@ -743,7 +743,7 @@ async def factual_datagen_full(  # there will be quite a few args here
         set_progress(
             task_id=task_id,
             progress=progress,
-            message=f"{idx} RAG dataset generation complete! Moving onto correction pipeline...",
+            message=f"{input_dir_name} RAG dataset generation complete! Moving onto correction pipeline...",
         )
 
         # create correction data
@@ -780,7 +780,7 @@ async def factual_datagen_full(  # there will be quite a few args here
         set_progress(
             task_id=task_id,
             progress=progress,
-            message=f"{idx} Correction pipeline finished! Saving all final datasets and creating the SFT training config...",
+            message=f"{input_dir_name} Correction pipeline finished! Saving all final datasets and creating the SFT training config...",
         )
 
         # first we need to get all the factual domain SFT data in one place
